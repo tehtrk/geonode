@@ -937,7 +937,8 @@ def resourcebase_post_save(instance, *args, **kwargs):
             if link.resource.doc_url != link.url:
                 link.delete()
         else:
-            if urlsplit(settings.SITEURL).hostname not in link.url:
+            hostname = urlsplit(settings.SITEURL).hostname
+            if hostname and hostname not in link.url:
                 link.delete()
 
 
