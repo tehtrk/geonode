@@ -33,19 +33,24 @@ RUN echo "Geonode python dependencies"
 RUN pip install pygdal==$(gdal-config --version).*
 RUN pip install celery==4.1.0 # see https://github.com/GeoNode/geonode/pull/3714
 
-# 5. Add the application
+# Install geonode dependencies
+ADD requirements.txt /requirements.txt
+RUN pip install -r requirements.txt
+RUN rm requirements.txt
+
+# Install geonode
 RUN mkdir /spcgeonode
 WORKDIR /spcgeonode/
-ADD requirements.txt /spcgeonode/requirements.txt
-RUN pip install -r requirements.txt
 ADD . /spcgeonode/
-RUN chmod +x docker-entrypoint.sh
+RUN pip install -e .
+RUN chmod +x scripts/spcgeonode/django/docker-entrypoint.sh
 
 # Export ports
 EXPOSE 8000
 
 # Set environnment variables
-ENV DJANGO_SETTINGS_MODULE=spcgeonode.settings
+ENV PYTHONPATH=/spcgeonode/scripts/spcgeonode/djano:$PYTHONPATH
+ENV DJANGO_SETTINGS_MODULE=settings_spcgeonode
 ENV DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
 ENV BROKER_URL=amqp://guest:guest@rabbitmq:5672/
 ENV STATIC_ROOT=/spcgeonode-static/

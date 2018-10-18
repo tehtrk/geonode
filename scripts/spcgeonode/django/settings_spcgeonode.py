@@ -2,11 +2,6 @@ import os, hashlib
 from geonode.settings import *
 
 
-##################################
-# Basic config
-##################################
-
-ROOT_URLCONF = os.getenv('ROOT_URLCONF', 'spcgeonode.urls')
 
 ##################################
 # Geoserver fix admin password

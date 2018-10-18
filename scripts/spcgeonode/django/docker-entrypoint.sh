@@ -10,7 +10,7 @@ date
 
 # Run migrations
 echo 'Running initialize.py...'
-python -u initialize.py
+python -u scripts/spcgeonode/django/initialize.py
 
 echo "-----------------------------------------------------"
 echo "FINISHED DJANGO ENTRYPOINT --------------------------"

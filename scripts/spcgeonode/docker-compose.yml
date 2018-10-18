@@ -10,7 +10,9 @@ x-common-django:
   &default-common-django
   image: olivierdalang/spcgeonode:django-latest
   # RANCHER : remove this
-  build: ./django/
+  build:
+    context: ../../
+    dockerfile: scripts/spcgeonode/django/Dockerfile
   environment:
     - HTTPS_HOST=${HTTPS_HOST}
     - HTTPS_PORT=${HTTPS_PORT}
@@ -42,8 +44,8 @@ services:
       timeout: 10s
       retries: 1
       start_period: 60s
-    entrypoint: ["/spcgeonode/docker-entrypoint.sh"]
-    command: "uwsgi --chdir=/spcgeonode --module=spcgeonode.wsgi --socket=:8000 --http=127.0.0.1:8001 --processes=5"
+    entrypoint: ["/spcgeonode/scripts/spcgeonode/django/docker-entrypoint.sh"]
+    command: "uwsgi --chdir=/spcgeonode --module=geonode.wsgi --socket=:8000 --http=127.0.0.1:8001 --processes=5"
     
   # Celery worker that executes celery tasks created by Django.
   celery:

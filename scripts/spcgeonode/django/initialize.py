@@ -7,9 +7,7 @@ This script initializes Geonode
 #########################################################
 
 import os, requests, json, uuid, django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'spcgeonode.settings')
 django.setup()
-
 
 #########################################################
 # Imports

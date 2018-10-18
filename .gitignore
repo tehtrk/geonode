@@ -86,4 +86,4 @@ geonode\.tests\.bdd\.e2e\.test_login/
 /celerybeat-schedule
 
 # Docker produc
-scripts/docker-prod/_volume_*
+scripts/spcgeonode/_volume_*
