@@ -24,7 +24,9 @@
 
 ## Version 0.2.x
 
-- moved to Geonode repo (regular Geonode install rather than Geonode-project) to make it easier to use as developement setup
+### 0.2.0
+
+- moved the setup to the main Geonode repo under `scripts/spcgeonode`, this makes it easier to use as developement setup for Geonode
 
 ## Version 0.1.x (Geonode 2.10)
 

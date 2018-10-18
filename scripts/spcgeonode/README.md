@@ -1,6 +1,6 @@
 # SPCgeonode [![Build Status](https://travis-ci.org/olivierdalang/SPCgeonode.svg?branch=master)](https://travis-ci.org/olivierdalang/SPCgeonode)
 
-SPCgeonode is a setup for Geonode deployement at SPC. It makes it easy to deploy a production ready Geonode.
+SPCgeonode is a setup for Geonode deployement at SPC. It makes it easy to deploy a production ready Geonode. The setup aims for simplicity over flexibility, so that it will only apply for typical small scale Geonode installations.
 
 The setup is also usable for Geonode developement or customization.
 
@@ -45,20 +45,20 @@ _secrets/admin_password
 _secrets/rclone.backup.conf
 ```
 
-When ready, start the stack using this command :
+When ready, start the stack using this commands :
 ```
 # Run the stack
 docker-compose -f docker-compose.yml up -d --build
 ```
 
+Alternatively, you can pull the images from dockerhub instead of rebuilding (only applies if you haven't changed the docker setup) :
+```
+# Pull the images and run the stack
+docker-compose -f docker-compose.yml pull
+docker-compose -f docker-compose.yml up -d
+```
+
 If not familiar with Docker, read below to know how to see what's happening. On first start, the containers will restart serveral times. Once everything started, you should be able to open http://your_http_host or https://your_https_host in your browser.
-
-
-### Production (using Rancher)
-
-See https://github.com/PacificCommunity/rancher-catalogue to install using Rancher.
-
-This uses almost exactly the same docker-compose file. The adaptations are marked as comments in the docker-compose file.
 
 ### Upgrade
 

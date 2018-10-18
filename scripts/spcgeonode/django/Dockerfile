@@ -49,7 +49,7 @@ RUN chmod +x scripts/spcgeonode/django/docker-entrypoint.sh
 EXPOSE 8000
 
 # Set environnment variables
-ENV PYTHONPATH=/spcgeonode/scripts/spcgeonode/djano:$PYTHONPATH
+ENV PYTHONPATH=/spcgeonode/scripts/spcgeonode/django:$PYTHONPATH
 ENV DJANGO_SETTINGS_MODULE=settings_spcgeonode
 ENV DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
 ENV BROKER_URL=amqp://guest:guest@rabbitmq:5672/
