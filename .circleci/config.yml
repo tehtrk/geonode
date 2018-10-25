@@ -1,20 +1,59 @@
-version: 2
+version: 2.1
 
 jobs:
   build:
-    machine: true
+
+    docker:
+      - image: circleci/buildpack-deps:trusty
+
+    parameters:
+      load_docker_cache:
+        type: boolean
+      save_docker_cache:
+        type: boolean
+      test_suite:
+        type: string
+        default: ""
+
     steps:
 
       - checkout
 
-      - run:
-          name: Install Docker Compose
-          command: |
-            sudo curl -L https://github.com/docker/compose/releases/download/1.22.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
+      - setup_remote_docker
+
+      - when:
+          condition: <<parameters.load_docker_cache>>
+          steps:
+            - restore_cache:
+                keys:
+                  - v1-docker-images-{{ .Branch }}
+            - run:
+                name: Load Docker layers cache
+                command: |
+                  docker load -i ~/docker-layers-cache.tar || true
 
       - run:
-          name: Build and start the stack
+          name: Build the stack
+          command: docker-compose -f docker-compose.yml build
+          working_directory: scripts/spcgeonode/
+
+      - when:
+          condition: <<parameters.save_docker_cache>>
+          steps:
+            - run:
+                name: Save Docker layers cache
+                command: |
+                  rm -f ~/docker-layers-cache.tar
+                  docker save -o ~/docker-layers-cache.tar $(docker images -a --format "{{.ID}}")
+                when: always
+            - save_cache:
+                key: v1-docker-images-{{ .Branch }}-{{ epoch }}
+                paths:
+                  - ~/docker-layers-cache.tar
+                when: always
+
+      - run:
+          name: Start the stack
           command: docker-compose -f docker-compose.yml up -d --build
           working_directory: scripts/spcgeonode/
 
@@ -25,13 +64,11 @@ jobs:
             m=60
             until [ $n -gt $m ]
             do
-              echo "Waiting 60 seconds..."
               sleep 60
               DJANGO_STATUS=$(docker inspect --format="{{json .State.Health.Status}}" spcgeonode_django_1)
               GEOSERVER_STATUS=$(docker inspect --format="{{json .State.Health.Status}}" spcgeonode_geoserver_1)
+              echo ""
               echo "Waited $n min (out of $m min)"
-              echo "Django: $DJANGO_STATUS"
-              echo "Geoserver: $GEOSERVER_STATUS"
               if [[ $DJANGO_STATUS == '"healthy"' ]] && [[ $GEOSERVER_STATUS == '"healthy"' ]]; then
                 break
               fi
@@ -44,28 +81,68 @@ jobs:
       - run:
           name: Show state (debug)
           command: docker ps
-          when: always
+          when: on_fail
 
       - run:
           name: Geoserver logs (debug)
           command: docker logs spcgeonode_geoserver_1 --tail 500
-          when: always
+          when: on_fail
 
       - run:
           name: Django logs (debug)
           command: docker logs spcgeonode_django_1 --tail 500
-          when: always
+          when: on_fail
 
-      # - run: Run the Geonode integration test suite # TODO : reenable this if we manage to have them pass
-      # - run: docker-compose -f docker-compose.yml exec postgres psql -U postgres -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity;"
-      # - run: docker-compose -f docker-compose.yml exec postgres psql -U postgres -c "CREATE DATABASE test_postgres WITH TEMPLATE postgres;"
-      # - run: docker-compose -f docker-compose.yml exec django python manage.py test geonode.tests.integration
+      - when:
+          condition: <<parameters.test_suite>>
+          steps:
+            - run:
+                name: Run test suite
+                command: |
+                  docker-compose -f docker-compose.yml exec django bash -c 'echo "Running <<parameters.test_suite>>"'
+                  docker-compose -f docker-compose.yml exec postgres psql -U postgres -c 'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE pid <> pg_backend_pid();'
+                  docker-compose -f docker-compose.yml exec postgres createdb -U postgres -T postgres test_postgres
+                  docker-compose -f docker-compose.yml run --rm django bash -c 'ASYNC_SIGNALS=False python manage.py test -v 3 --keepdb <<parameters.test_suite>>'
+                working_directory: scripts/spcgeonode/
 
 workflows:
-  version: 2
+
   commit:
     jobs:
-      - build
+      - build:
+          name: setup
+          load_docker_cache: true
+          save_docker_cache: true
+          test_suite: 'geonode.tests.smoke'
+      - build:
+          name: tests_integration
+          load_docker_cache: true
+          save_docker_cache: false
+          test_suite: 'geonode.tests.integration'
+          requires:
+            - setup
+      - build:
+          name: tests_core
+          load_docker_cache: true
+          save_docker_cache: false
+          test_suite: $(python -c "import sys;from geonode import settings;sys.stdout.write('\'' '\''.join([a+'\''.tests'\'' for a in settings.GEONODE_CORE_APPS]))")
+          requires:
+            - setup
+      - build:
+          name: tests_internal
+          load_docker_cache: true
+          save_docker_cache: false
+          test_suite: $(python -c "import sys;from geonode import settings;sys.stdout.write('\'' '\''.join([a+'\''.tests'\'' for a in settings.GEONODE_INTERNAL_APPS]))")
+          requires:
+            - setup
+      - build:
+          name: tests_contrib
+          load_docker_cache: true
+          save_docker_cache: false
+          test_suite: $(python -c "import sys;from geonode import settings;sys.stdout.write('\'' '\''.join([a+'\''.tests'\'' for a in settings.GEONODE_CONTRIB_APPS]))")
+          requires:
+            - setup
+
   nightly:
     triggers:
       - schedule:
@@ -74,5 +151,9 @@ workflows:
             branches:
               only:
                 - spcgeonode-release
+                - spcgeonode
     jobs:
-      - build
+      - build:
+          load_docker_cache: false
+          save_docker_cache: true
+          test_suite: geonode.tests.smoke geonode.tests.integration $(python -c "import sys;from geonode import settings;sys.stdout.write('\'' '\''.join([a+'\''.tests'\'' for a in settings.GEONODE_APPS]))")
