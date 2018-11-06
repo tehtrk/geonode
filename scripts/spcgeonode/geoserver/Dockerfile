@@ -1,7 +1,7 @@
 FROM openjdk:8-jre-alpine
 
 # Install dependencies
-RUN apk add --no-cache ca-certificates openssl curl postgresql-client fontconfig ttf-ubuntu-font-family
+RUN apk add --no-cache wget ca-certificates openssl curl postgresql-client fontconfig ttf-ubuntu-font-family
 RUN update-ca-certificates
 
 WORKDIR /
@@ -28,7 +28,7 @@ RUN ls /data
 WORKDIR /geoserver-2.14.0/
 
 # Add the entrypoint
-ADD docker-entrypoint.sh /docker-entrypoint.sh 
+ADD docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
