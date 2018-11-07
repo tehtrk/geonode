@@ -58,6 +58,15 @@ jobs:
           working_directory: scripts/spcgeonode/
 
       - run:
+          name: Collect and persist container names
+          command: |
+            echo getting names of the running containers
+            spcgeonode_django_name=$(docker ps -a --format '{{.Names}}' | grep "spcgeonode_django_1_")
+            echo "export spcgeonode_django_name=$spcgeonode_django_name" >> $BASH_ENV
+            spcgeonode_geoserver_name=$(docker ps -a --format '{{.Names}}' | grep "spcgeonode_geoserver_1")
+            echo "export spcgeonode_geoserver_name=$spcgeonode_geoserver_name" >> $BASH_ENV
+
+      - run:
           name: Wait for everything to start...
           command: |
             n=1
@@ -65,8 +74,8 @@ jobs:
             until [ $n -gt $m ]
             do
               sleep 60
-              DJANGO_STATUS=$(docker inspect --format="{{json .State.Health.Status}}" spcgeonode_django_1)
-              GEOSERVER_STATUS=$(docker inspect --format="{{json .State.Health.Status}}" spcgeonode_geoserver_1)
+              DJANGO_STATUS=$(docker inspect --format="{{json .State.Health.Status}}" $spcgeonode_django_name)
+              GEOSERVER_STATUS=$(docker inspect --format="{{json .State.Health.Status}}" $spcgeonode_geoserver_name)
               echo ""
               echo "Waited $n min (out of $m min)"
               if [[ $DJANGO_STATUS == '"healthy"' ]] && [[ $GEOSERVER_STATUS == '"healthy"' ]]; then
@@ -85,12 +94,12 @@ jobs:
 
       - run:
           name: Geoserver logs (debug)
-          command: docker logs spcgeonode_geoserver_1 --tail 500
+          command: docker logs $spcgeonode_geoserver_name --tail 500
           when: on_fail
 
       - run:
           name: Django logs (debug)
-          command: docker logs spcgeonode_django_1 --tail 500
+          command: docker logs $spcgeonode_django_name --tail 500
           when: on_fail
 
       - when:
